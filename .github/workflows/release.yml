@@ -137,15 +137,10 @@ jobs:
         find artifacts -type f -name "*.exe" -o -name "ssd_sn_tool*" -exec ls -lh {} \;
 
     - name: Create Release
-      id: create_release
       uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
         body: |
           ## 下载
 
