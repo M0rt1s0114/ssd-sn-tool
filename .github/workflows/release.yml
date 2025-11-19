@@ -38,7 +38,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -64,9 +64,24 @@ jobs:
         fi
 
     - name: Install UPX
-      uses: svenstaro/upx-action@v2
-      with:
-        upx_version: '4.2.4'
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          # Windows
+          curl -L -o upx.zip https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip
+          7z x upx.zip
+          mv upx-4.2.4-win64/upx.exe /usr/local/bin/
+        elif [ "${{ runner.os }}" == "Linux" ]; then
+          # Linux
+          curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz
+          tar -xf upx.tar.xz
+          mv upx-4.2.4-amd64_linux/upx /usr/local/bin/
+        else
+          # macOS
+          curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_darwin.tar.xz
+          tar -xf upx.tar.xz
+          mv upx-4.2.4-amd64_darwin/upx /usr/local/bin/
+        fi
+        chmod +x /usr/local/bin/upx
 
     - name: Compress binary with UPX
       id: upx
@@ -126,7 +141,7 @@ jobs:
         draft: false
         prerelease: false
         body: |
-          # SSD命名实用工具 ${{ github.ref_name }}
+          # SSD SN码工具 ${{ github.ref_name }}
 
           ## 🚀 功能特点
           - 固件版本号生成和解析
