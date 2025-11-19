@@ -107,14 +107,60 @@ jobs:
       with:
         path: artifacts
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body_path: .github/RELEASE_TEMPLATE.md
-        files: |
-          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe
-          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe
-          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64-upx
+    - name: Display downloaded files
+      run: |
+        echo "=== Downloaded artifacts ==="
+        find artifacts -type f -name "*.exe" -o -name "ssd_sn_tool*" | sort
+        echo "=== File sizes ==="
+        find artifacts -type f -name "*.exe" -o -name "ssd_sn_tool*" -exec ls -lh {} \;
+
+    - name: Install GitHub CLI
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install gh -y
+
+    - name: Create Release with GitHub CLI
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # 提取标签名
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        
+        # 创建发布说明
+        RELEASE_BODY="## 下载
+        
+        ### Windows
+        - **ssd_sn_tool-windows-x86_64-upx.exe** - UPX压缩版 (推荐)
+        - ssd_sn_tool-windows-x86_64.exe - 原始版本
+        
+        ### Linux
+        - **ssd_sn_tool-linux-x86_64-upx** - UPX压缩版 (推荐)
+        - ssd_sn_tool-linux-x86_64 - 原始版本
+        
+        ## 使用说明
+        
+        ### 图形界面模式
+        直接运行可执行文件即可打开图形界面。
+        
+        ### 命令行模式
+        \`\`\`bash
+        # 生成固件版本号
+        ./ssd_sn_tool firmware generate 2025 12 1 1 1024 A 4
+        
+        # 解析固件版本号
+        ./ssd_sn_tool firmware parse S01E1A4
+        
+        # 查看配置
+        ./ssd_sn_tool firmware config
+        \`\`\`"
+        
+        # 创建发布
+        gh release create "$TAG_NAME" \
+          --title "Release $TAG_NAME" \
+          --notes "$RELEASE_BODY" \
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe \
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe \
+          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64-upx \
           artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64
