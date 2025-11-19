@@ -1,0 +1,179 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送 v 开头的标签时触发，如 v1.0.0
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-release:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: ssd_sn_tool
+            asset_name: ssd_sn_tool-windows-x86_64.exe
+            upx_asset_name: ssd_sn_tool-windows-x86_64-upx.exe
+          - os: ubuntu-latest
+            artifact_name: ssd_sn_tool
+            asset_name: ssd_sn_tool-linux-x86_64
+            upx_asset_name: ssd_sn_tool-linux-x86_64-upx
+          - os: macos-latest
+            artifact_name: ssd_sn_tool
+            asset_name: ssd_sn_tool-macos-x86_64
+            upx_asset_name: ssd_sn_tool-macos-x86_64-upx
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Build release binary
+      run: cargo build --release --verbose
+
+    - name: Strip binary (Linux and macOS)
+      if: matrix.os != 'windows-latest'
+      run: strip target/release/${{ matrix.artifact_name }}
+
+    - name: Display binary size before UPX
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          ls -lh "target/release/${{ matrix.artifact_name }}.exe"
+        else
+          ls -lh "target/release/${{ matrix.artifact_name }}"
+        fi
+
+    - name: Install UPX
+      uses: svenstaro/upx-action@v2
+      with:
+        upx_version: '4.2.4'
+
+    - name: Compress binary with UPX
+      id: upx
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          upx --best --ultra-brute "target/release/${{ matrix.artifact_name }}.exe" -o "${{ matrix.upx_asset_name }}"
+          cp "target/release/${{ matrix.artifact_name }}.exe" "${{ matrix.asset_name }}"
+        else
+          upx --best --ultra-brute "target/release/${{ matrix.artifact_name }}" -o "${{ matrix.upx_asset_name }}"
+          cp "target/release/${{ matrix.artifact_name }}" "${{ matrix.asset_name }}"
+          chmod +x "${{ matrix.asset_name }}"
+          chmod +x "${{ matrix.upx_asset_name }}"
+        fi
+
+    - name: Display binary sizes after UPX
+      run: |
+        echo "Original binary size:"
+        ls -lh "${{ matrix.asset_name }}"
+        echo "UPX compressed binary size:"
+        ls -lh "${{ matrix.upx_asset_name }}"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}-binaries
+        path: |
+          ${{ matrix.asset_name }}
+          ${{ matrix.upx_asset_name }}
+        retention-days: 7
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Display structure of downloaded files
+      run: |
+        find artifacts -type f -name "*.exe" -o -name "ssd_sn_tool*" | sort
+        echo "=== File sizes ==="
+        find artifacts -type f -name "*.exe" -o -name "ssd_sn_tool*" -exec ls -lh {} \;
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+          # SSD命名实用工具 ${{ github.ref_name }}
+
+          ## 🚀 功能特点
+          - 固件版本号生成和解析
+          - 图形界面和命令行支持
+          - 跨平台支持（Windows、Linux、macOS）
+          - 单文件部署，无需额外依赖
+
+          ## 📦 下载
+
+          ### Windows
+          - **[ssd_sn_tool-windows-x86_64-upx.exe](ssd_sn_tool-windows-x86_64-upx.exe)** - UPX压缩版 (推荐)
+          - [ssd_sn_tool-windows-x86_64.exe](ssd_sn_tool-windows-x86_64.exe) - 原始版本
+
+          ### Linux
+          - **[ssd_sn_tool-linux-x86_64-upx](ssd_sn_tool-linux-x86_64-upx)** - UPX压缩版 (推荐)
+          - [ssd_sn_tool-linux-x86_64](ssd_sn_tool-linux-x86_64) - 原始版本
+
+          ### macOS
+          - **[ssd_sn_tool-macos-x86_64-upx](ssd_sn_tool-macos-x86_64-upx)** - UPX压缩版 (推荐)
+          - [ssd_sn_tool-macos-x86_64](ssd_sn_tool-macos-x86_64) - 原始版本
+
+          ## 🔧 使用说明
+
+          ### 图形界面模式
+          直接运行可执行文件即可打开图形界面。
+
+          ### 命令行模式
+          ```bash
+          # 生成固件版本号
+          ./ssd_sn_tool firmware generate 2025 12 1 1 1024 A 4
+
+          # 解析固件版本号
+          ./ssd_sn_tool firmware parse S01E1A4
+
+          # 查看配置
+          ./ssd_sn_tool firmware config
+          ```
+
+          ## 📊 文件信息
+          构建时间: ${{ fromJSON(steps.create_release.outputs.upload_url).created_at }}
+
+          ---
+          *自动生成于 GitHub Actions*
+        files: |
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe
+          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64-upx
+          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64
+          artifacts/macos-latest-binaries/ssd_sn_tool-macos-x86_64-upx
+          artifacts/macos-latest-binaries/ssd_sn_tool-macos-x86_64
