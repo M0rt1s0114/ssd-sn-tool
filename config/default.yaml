@@ -1,0 +1,45 @@
+base_date:
+  year: 2025
+  month: 11
+  day: 1
+
+base32_chars: "0123456789ABCDEFGHIJKLMNOPQRSTUV"
+
+pcb_sizes:
+  0: "手腕板及更小"
+  1: "通用版型"
+  2: "G2"
+  3: "G2_SWP"
+  4: "G2+"
+  5: "M"
+  6: "M_SWP"
+  7: "M+"
+  8: "L"
+
+dram_sizes:
+  X: -1
+  0: 128
+  1: 256
+  2: 512
+  3: 1024
+  4: 2048
+  5: 4096
+  6: 8192
+  7: 16384
+
+packages:
+  0: "EMMC/UFS"
+  A: "BGA100"
+  B: "BGA132/152"
+  C: "BGA168"
+  D: "BGA252/272"
+  F: "BGA291"
+  G: "BGA316"
+  H: "BGA154"
+  I: "BGA308"
+
+chip_count:
+  min: 1
+  max: 16
+
+sn_format: "S + 日期编码(3) + PCB尺寸(1) + DRAM大小(1) + 封装(1) + 颗粒数(1, 1-F/G)"
