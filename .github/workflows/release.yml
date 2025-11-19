@@ -147,25 +147,17 @@ jobs:
         draft: false
         prerelease: false
         body: |
-          # SSD SN码工具 ${{ github.ref_name }}
-
-          ## 🚀 功能特点
-          - 固件版本号生成和解析
-          - 图形界面和命令行支持
-          - 跨平台支持（Windows、Linux）
-          - 单文件部署，无需额外依赖
-
-          ## 📦 下载
+          ## 下载
 
           ### Windows
-          - **[ssd_sn_tool-windows-x86_64-upx.exe](ssd_sn_tool-windows-x86_64-upx.exe)** - UPX压缩版 (推荐)
-          - [ssd_sn_tool-windows-x86_64.exe](ssd_sn_tool-windows-x86_64.exe) - 原始版本
+          - **ssd_sn_tool-windows-x86_64-upx.exe** - UPX压缩版 (推荐)
+          - ssd_sn_tool-windows-x86_64.exe - 原始版本
 
           ### Linux
-          - **[ssd_sn_tool-linux-x86_64-upx](ssd_sn_tool-linux-x86_64-upx)** - UPX压缩版 (推荐)
-          - [ssd_sn_tool-linux-x86_64](ssd_sn_tool-linux-x86_64) - 原始版本
+          - **ssd_sn_tool-linux-x86_64-upx** - UPX压缩版 (推荐)
+          - ssd_sn_tool-linux-x86_64 - 原始版本
 
-          ## 🔧 使用说明
+          ## 使用说明
 
           ### 图形界面模式
           直接运行可执行文件即可打开图形界面。
@@ -181,12 +173,6 @@ jobs:
           # 查看配置
           ./ssd_sn_tool firmware config
           ```
-
-          ## 📊 文件信息
-          构建时间: ${{ fromJSON(steps.create_release.outputs.upload_url).created_at }}
-
-          ---
-          *自动生成于 GitHub Actions*
         files: |
           artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe
           artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe
