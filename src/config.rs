@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use crate::error::SnError;
 
+// 基础日期配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseDate {
     pub year: i32,
@@ -10,34 +11,38 @@ pub struct BaseDate {
     pub day: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SnConfig {
-    pub base_date: BaseDate,
-    pub base32_chars: String,
-    pub pcb_sizes: HashMap<u8, String>,
-    pub dram_sizes: HashMap<char, i32>,
-    pub packages: HashMap<char, String>,
-    pub chip_count: ChipCount,
-    pub sn_format: String,
-}
-
+// 芯片数量范围
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChipCount {
     pub min: u8,
     pub max: u8,
 }
 
-impl Default for SnConfig {
+// 固件版本配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FirmwareConfig {
+    pub base_date: BaseDate,
+    pub base32_chars: String,
+    pub pcb_sizes: HashMap<u8, String>,
+    pub dram_sizes: HashMap<char, i32>,
+    pub packages: HashMap<char, String>,
+    pub chip_count: ChipCount,
+    pub format: String,
+}
+
+impl Default for FirmwareConfig {
     fn default() -> Self {
-        let config_str = include_str!("../config/default.yaml");
+        let config_str = include_str!("../config/fwver.yaml");
         serde_yaml::from_str(config_str)
-            .expect("Failed to parse default configuration")
+            .expect("Failed to parse firmware configuration")
     }
 }
 
-impl SnConfig {
+impl FirmwareConfig {
     pub fn new() -> Result<Self, SnError> {
-        Ok(Self::default())
+        let config = Self::default();
+        config.validate()?;
+        Ok(config)
     }
 
     pub fn validate(&self) -> Result<(), SnError> {
@@ -60,6 +65,7 @@ impl SnConfig {
         Ok(())
     }
 
+    // 验证方法
     pub fn is_valid_pcb_size(&self, size: u8) -> bool {
         self.pcb_sizes.contains_key(&size)
     }
@@ -76,12 +82,14 @@ impl SnConfig {
         count >= self.chip_count.min && count <= self.chip_count.max
     }
 
+    // 获取描述信息
     pub fn get_pcb_size_name(&self, size: u8) -> String {
         self.pcb_sizes.get(&size)
             .cloned()
             .unwrap_or_else(|| "未知尺寸".to_string())
     }
 
+    #[allow(dead_code)]
     pub fn get_dram_size_desc(&self, code: char) -> String {
         self.dram_sizes.get(&code.to_ascii_uppercase())
             .map(|&size| {
@@ -102,9 +110,10 @@ impl SnConfig {
             .unwrap_or_else(|| "未知封装".to_string())
     }
 
+    #[allow(dead_code)]
     pub fn get_config_info(&self) -> String {
         format!(
-            "配置信息:\n  基准日期: {}-{}-{}\n  PCB尺寸: {} 种\n  DRAM大小: {} 种\n  封装类型: {} 种\n  颗粒数量范围: {} - {} (1-F/G)\n  SN码格式: {}",
+            "固件版本配置:\n  基准日期: {}-{}-{}\n  PCB尺寸: {} 种\n  DRAM大小: {} 种\n  封装类型: {} 种\n  颗粒数量范围: {} - {}\n  格式: {}",
             self.base_date.year,
             self.base_date.month,
             self.base_date.day,
@@ -113,12 +122,31 @@ impl SnConfig {
             self.packages.len(),
             self.chip_count.min,
             self.chip_count.max,
-            self.sn_format
+            self.format
         )
     }
 }
 
+// 主配置结构（为未来扩展预留）
+#[derive(Debug, Clone)]
+pub struct AppConfig {
+    pub firmware: FirmwareConfig,
+}
+
+impl AppConfig {
+    pub fn new() -> Result<Self, SnError> {
+        Ok(Self {
+            firmware: FirmwareConfig::new()?,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn get_config_info(&self) -> String {
+        self.firmware.get_config_info()
+    }
+}
+
 lazy_static! {
-    pub static ref CONFIG: SnConfig = SnConfig::new()
+    pub static ref CONFIG: AppConfig = AppConfig::new()
         .expect("Failed to load configuration");
 }
