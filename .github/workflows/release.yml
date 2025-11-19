@@ -99,62 +99,18 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
         path: artifacts
 
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
-        body: |
-          ## 下载\n\n### Windows\n- **ssd_sn_tool-windows-x86_64-upx.exe** - UPX压缩版 (推荐)\n- ssd_sn_tool-windows-x86_64.exe - 原始版本\n\n### Linux\n- **ssd_sn_tool-linux-x86_64-upx** - UPX压缩版 (推荐)\n- ssd_sn_tool-linux-x86_64 - 原始版本\n\n## 使用说明\n\n### 图形界面模式\n直接运行可执行文件即可打开图形界面。\n\n### 命令行模式\n```bash\n# 生成固件版本号\n./ssd_sn_tool firmware generate 2025 12 1 1 1024 A 4\n\n# 解析固件版本号\n./ssd_sn_tool firmware parse S01E1A4\n\n# 查看配置\n./ssd_sn_tool firmware config\n```
-        draft: false
-        prerelease: false
-
-    - name: Upload Windows UPX Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe
-        asset_name: ssd_sn_tool-windows-x86_64-upx.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows Original Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe
-        asset_name: ssd_sn_tool-windows-x86_64.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux UPX Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64-upx
-        asset_name: ssd_sn_tool-linux-x86_64-upx
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux Original Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64
-        asset_name: ssd_sn_tool-linux-x86_64
-        asset_content_type: application/octet-stream
+        files: |
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64-upx.exe
+          artifacts/windows-latest-binaries/ssd_sn_tool-windows-x86_64.exe
+          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64-upx
+          artifacts/ubuntu-latest-binaries/ssd_sn_tool-linux-x86_64
