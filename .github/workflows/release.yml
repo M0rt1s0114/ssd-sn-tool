@@ -52,6 +52,7 @@ jobs:
       run: strip target/release/${{ matrix.artifact_name }}
 
     - name: Display binary size before UPX
+      shell: bash
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
           ls -lh "target/release/${{ matrix.artifact_name }}.exe"
@@ -59,35 +60,49 @@ jobs:
           ls -lh "target/release/${{ matrix.artifact_name }}"
         fi
 
-    - name: Install UPX
+    - name: Install UPX (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
       run: |
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          # Windows - 使用 PowerShell 解压
-          curl -L -o upx.zip https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip
-          powershell -Command "Expand-Archive -Path upx.zip -DestinationPath upx-temp"
-          mv upx-temp/upx-4.2.4-win64/upx.exe /usr/local/bin/
-        else
-          # Linux
-          curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz
-          tar -xf upx.tar.xz
-          mv upx-4.2.4-amd64_linux/upx /usr/local/bin/
-        fi
-        chmod +x /usr/local/bin/upx
+        Write-Host "Installing UPX for Windows..."
+        Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip" -OutFile "upx.zip"
+        Expand-Archive -Path "upx.zip" -DestinationPath "upx-temp"
+        Move-Item -Path "upx-temp/upx-4.2.4-win64/upx.exe" -Destination "upx.exe"
+        Write-Host "UPX installed successfully"
 
-    - name: Compress binary with UPX
-      id: upx
+    - name: Install UPX (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
       run: |
-        if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          upx --best --ultra-brute "target/release/${{ matrix.artifact_name }}.exe" -o "${{ matrix.upx_asset_name }}"
-          cp "target/release/${{ matrix.artifact_name }}.exe" "${{ matrix.asset_name }}"
-        else
-          upx --best --ultra-brute "target/release/${{ matrix.artifact_name }}" -o "${{ matrix.upx_asset_name }}"
-          cp "target/release/${{ matrix.artifact_name }}" "${{ matrix.asset_name }}"
-          chmod +x "${{ matrix.asset_name }}"
-          chmod +x "${{ matrix.upx_asset_name }}"
-        fi
+        echo "Installing UPX for Linux..."
+        curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz
+        tar -xf upx.tar.xz
+        mv upx-4.2.4-amd64_linux/upx /usr/local/bin/
+        chmod +x /usr/local/bin/upx
+        echo "UPX installed successfully"
+
+    - name: Compress binary with UPX (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        Write-Host "Compressing Windows binary with UPX..."
+        .\upx.exe --best --ultra-brute "target/release/${{ matrix.artifact_name }}.exe" -o "${{ matrix.upx_asset_name }}"
+        Copy-Item "target/release/${{ matrix.artifact_name }}.exe" -Destination "${{ matrix.asset_name }}"
+        Write-Host "Compression completed"
+
+    - name: Compress binary with UPX (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+        echo "Compressing Linux binary with UPX..."
+        upx --best --ultra-brute "target/release/${{ matrix.artifact_name }}" -o "${{ matrix.upx_asset_name }}"
+        cp "target/release/${{ matrix.artifact_name }}" "${{ matrix.asset_name }}"
+        chmod +x "${{ matrix.asset_name }}"
+        chmod +x "${{ matrix.upx_asset_name }}"
+        echo "Compression completed"
 
     - name: Display binary sizes after UPX
+      shell: bash
       run: |
         echo "Original binary size:"
         ls -lh "${{ matrix.asset_name }}"
