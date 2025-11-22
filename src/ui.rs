@@ -92,9 +92,9 @@ impl SsdToolApp {
 
         // 解析输入参数
         let year = match self.firmware_generate.year.parse::<i32>() {
-            Ok(year) if year >= 2025 && year <= 2099 => year,
+            Ok(year) if year >= 2010 && year <= 2099 => year,
             Ok(_) => {
-                self.error_message = Some("年份必须在2025-2099之间".to_string());
+                self.error_message = Some("年份必须在2010-2099之间".to_string());
                 return;
             }
             Err(_) => {

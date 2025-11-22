@@ -1,8 +1,8 @@
 # 固件版本号配置
 base_date:
-  year: 2025
-  month: 11
-  day: 1
+  year: 2010
+  month: 4
+  day: 15
 
 base32_chars: "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 
